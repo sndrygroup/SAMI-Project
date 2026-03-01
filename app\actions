@@ -1,1 +1,26 @@
+"use server";
 
+export async function askSami(userMessage: string) {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "أنت سامي، خبير تسويق سعودي ذكي. أجب بلهجة مهنية وودودة." },
+          { role: "user", content: userMessage }
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "عذراً، لم أستطع الرد حالياً.";
+  } catch (error) {
+    console.error("Sami Error:", error);
+    return "يا هلا، واجهت مشكلة تقنية بسيطة، ممكن تعيد إرسال رسالتك؟";
+  }
+}
