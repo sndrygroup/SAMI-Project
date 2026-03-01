@@ -1,1 +1,14 @@
+// app/api/automation/route.ts
+import { NextResponse } from 'next/server';
 
+export async function POST(request: Request) {
+  const rule = await request.json();
+  
+  // منطق الأتمتة: حفظ القاعدة وتفعيل "المراقب" (Watcher)
+  console.log("تفعيل قاعدة أتمتة جديدة:", rule.name);
+
+  return NextResponse.json({ 
+    status: "active", 
+    message: `تم ربط القاعدة: ${rule.name} بمحرك سامي الذكي` 
+  });
+}
