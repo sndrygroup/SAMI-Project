@@ -1,1 +1,65 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { name, platform, budget } = await req.json();
+    const budgetFloat = parseFloat(budget);
+
+    if (!name || !platform || !budgetFloat || budgetFloat <= 0) {
+      return NextResponse.json({ error: "Missing or invalid required fields" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (user.adWalletBalance < budgetFloat) {
+      return NextResponse.json({ error: "Insufficient wallet balance" }, { status: 400 });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Deduct budget from user's wallet
+      const updatedUser = await tx.user.update({
+        where: { id: session.user.id },
+        data: { adWalletBalance: { decrement: budgetFloat } },
+      });
+
+      // 2. Create the campaign
+      const newCampaign = await tx.campaign.create({
+        data: {
+          name,
+          platform,
+          budget: budgetFloat,
+          userId: session.user.id,
+        },
+      });
+
+      // 3. Create a transaction record
+      await tx.transaction.create({
+        data: {
+          amount: -budgetFloat,
+          type: "CAMPAIGN_SPEND",
+          userId: session.user.id,
+        },
+      });
+      
+      return newCampaign;
+    });
+
+    return NextResponse.json(result, { status: 201 });
+
+  } catch (error) {
+    console.error("Campaign creation error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
