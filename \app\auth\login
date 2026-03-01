@@ -1,1 +1,111 @@
+"use client";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { AtSign, Lock, LogIn } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+
+const BrandTextGradient = "text-transparent bg-clip-text bg-gradient-to-br from-violet-400 to-purple-500";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
+
+    if (result?.error) {
+      setError("Invalid email or password");
+    } else if (result?.ok) {
+      router.push("/dashboard");
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0A090C] text-[#D1D1D6] p-4" dir="rtl">
+      {/* Soft Gradient Glow */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vh] bg-purple-900/20 rounded-full blur-[200px]" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md z-10"
+      >
+        <div className="bg-gradient-to-br from-[#14131a] to-[#0f0e13] border border-white/5 rounded-[32px] p-8 shadow-2xl shadow-black/30">
+          <div className="text-center mb-10">
+            <Link href="/" className="text-4xl font-bold italic tracking-tighter mb-2 inline-block">
+              SAM<span className="text-violet-500">I</span>
+            </Link>
+            <p className="text-gray-400 font-medium">أهلاً بك مجددًا في المستقبل</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            {error && <p className="text-red-500 text-center">{error}</p>}
+            {/* Email Input */}
+            <div className="relative">
+              <AtSign className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-500" size={20} />
+              <Input
+                type="email"
+                placeholder="البريد الإلكتروني"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pr-12"
+                required
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="relative">
+              <Lock className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-500" size={20} />
+              <Input
+                type="password"
+                placeholder="كلمة المرور"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-12"
+                required
+              />
+            </div>
+
+            {/* Login Button */}
+            <Button type="submit" className="w-full" size="lg">
+              <LogIn size={22} className="ml-2" />
+              <span>تسجيل الدخول</span>
+            </Button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-gray-500">
+              ليس لديك حساب؟{" "}
+              <Link href="/auth/signup" className={`font-bold hover:text-white transition ${BrandTextGradient}`}>
+                أنشئ حسابًا جديدًا
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center mt-6">
+          <Link href="/" className="text-sm text-gray-500 hover:text-white transition">
+            العودة إلى الصفحة الرئيسية
+          </Link>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
