@@ -1,1 +1,62 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { platform, apiKey } = await req.json();
+
+    if (!platform || !apiKey) {
+      return NextResponse.json({ error: "Platform and API Key are required" }, { status: 400 });
+    }
+
+    // TODO: Encrypt the API key before saving
+    const newApiConfig = await prisma.apiConfig.create({
+      data: {
+        platform,
+        apiKey,
+        userId: session.user.id,
+      },
+    });
+
+    return NextResponse.json(newApiConfig, { status: 201 });
+
+  } catch (error) {
+    console.error("API Key creation error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: "API Config ID is required" }, { status: 400 });
+    }
+
+    await prisma.apiConfig.delete({
+      where: {
+        id: id,
+        // Optional: ensure user can only delete their own keys
+        // userId: session.user.id 
+      },
+    });
+
+    return NextResponse.json({ message: "API Key deleted successfully" }, { status: 200 });
+
+  } catch (error) {
+    console.error("API Key deletion error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
