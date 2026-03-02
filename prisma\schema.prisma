@@ -1,1 +1,59 @@
+datasource db {
+  provider = "postgresql" // أو sqlite حسب إعدادك
+  url      = env("DATABASE_URL")
+}
 
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String?
+  email              String   @unique
+  password           String?  // مطلوب إذا لم تستخدم Google/Apple فقط
+  plan               String   @default("FREE") 
+  subscriptionActive Boolean  @default(false)
+  
+  // المحفظة المالية للحملات
+  adWalletBalance    Float    @default(0.0) 
+  
+  // العلاقات
+  campaigns          Campaign[]
+  transactions       Transaction[]
+  apiConfigs         ApiConfig[]   // لتخزين مفاتيح الربط (Snap, Meta...)
+  createdAt          DateTime @default(now())
+}
+
+model Campaign {
+  id           String   @id @default(cuid())
+  name         String
+  platform     String   // "SNAPCHAT", "TIKTOK", "META"...
+  status       String   @default("PENDING") // ACTIVE, PAUSED, COMPLETED
+  budget       Float    // ميزانية الحملة المخصومة من المحفظة
+  spent        Float    @default(0.0)
+  
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  amount    Float
+  type      String   // "DEPOSIT" (شحن محفظة) أو "CAMPAIGN_SPEND" (صرف حملة)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model ApiConfig {
+  id           String   @id @default(cuid())
+  platform     String   // اسم المنصة
+  apiKey       String   // المفتاح مشفر
+  accessToken  String?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+}
